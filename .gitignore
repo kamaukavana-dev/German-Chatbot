@@ -1,5 +1,17 @@
 node_modules
+node_modules/
 dist
+dist/
 .DS_Store
 *.local
+
+# Env files — never commit secrets
 .env
+.env.local
+.env.production
+
+# Vercel
+.vercel/
+
+# Archived / backup files
+*.bak
