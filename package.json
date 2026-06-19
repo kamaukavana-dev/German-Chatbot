@@ -6,9 +6,7 @@
   "description": "HANS — a Duolingo-style adaptive German learning app with a Gemini-powered AI tutor and a 3D mascot.",
   "scripts": {
     "dev": "vercel dev",
-    "dev:local": "concurrently -n web,api -c green,cyan \"vite\" \"node backend/server.js\"",
     "dev:web": "vite",
-    "dev:api": "node backend/server.js",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -16,9 +14,6 @@
     "@google/genai": "^2.8.0",
     "@react-three/drei": "^9.114.3",
     "@react-three/fiber": "^8.17.10",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.1",
     "framer-motion": "^11.3.19",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
