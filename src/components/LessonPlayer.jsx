@@ -1,9 +1,11 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Exercise from './Exercise.jsx'
 import Mascot3D from './Mascot3D.jsx'
 import SpeakButton from './SpeakButton.jsx'
 import { useSpeech } from '../lib/speech.js'
+import { sound } from '../lib/SoundEngine.js'
+import { GenderLegend, LessonBadges, TranslationToggle, highlightGenders } from './lessonDisplay.jsx'
 import {
   evaluate,
   applyXp,
@@ -12,8 +14,11 @@ import {
   freshLessonSession,
 } from '../engine.js'
 
-export default function LessonPlayer({ lesson, profile, onProfileChange, onExit }) {
+export default function LessonPlayer({ lesson, profile, onProfileChange, onLessonComplete, onExit }) {
   const [session, setSession] = useState(freshLessonSession)
+  const startRef = useRef(Date.now())
+  const comboRef = useRef(0)
+  const maxComboRef = useRef(0)
   const [baseIdx, setBaseIdx] = useState(0)
   const [reviewItem, setReviewItem] = useState(null)
   const [phase, setPhase] = useState('intro') // intro|exercise|feedback|complete|dead
@@ -64,6 +69,15 @@ export default function LessonPlayer({ lesson, profile, onProfileChange, onExit 
     const passed = v.tier === 'correct' || v.tier === 'close'
     setVerdict(v)
     setSessionXp((x) => x + v.xp)
+
+    // Track the best correct-answer combo this lesson (for quests/achievements).
+    if (passed) {
+      comboRef.current += 1
+      maxComboRef.current = Math.max(maxComboRef.current, comboRef.current)
+    } else {
+      comboRef.current = 0
+    }
+    sound.play(passed ? 'correct_answer' : 'wrong_answer')
 
     setSession((s) => {
       let next = { ...s, total: s.total + 1 }
@@ -140,6 +154,22 @@ export default function LessonPlayer({ lesson, profile, onProfileChange, onExit 
       : [...profile.completedLessons, lesson.lesson_id]
     if (updated.justPromoted) setPromo({ from: beforeLevel, to: updated.cefr_level })
     onProfileChange(updated)
+
+    // Report a summary to the app so it can update XP aggregate, quests,
+    // streak, activity and achievements. Engine state is unchanged by this.
+    const acc = session.total > 0 ? Math.round((session.correct / session.total) * 100) : 0
+    sound.play(updated.justPromoted ? 'level_up' : 'quest_complete')
+    onLessonComplete?.({
+      gainedXp: sessionXp,
+      newlyCompleted: !already,
+      lessonId: lesson.lesson_id,
+      accuracy: acc,
+      perfect: session.total > 0 && session.correct === session.total,
+      durationSec: Math.round((Date.now() - startRef.current) / 1000),
+      bestCombo: maxComboRef.current,
+      level: updated.cefr_level,
+      promoted: !!updated.justPromoted,
+    })
     setPhase('complete')
   }
 
@@ -154,18 +184,20 @@ export default function LessonPlayer({ lesson, profile, onProfileChange, onExit 
           ✕
         </button>
         <div className="flex flex-1 flex-col items-center justify-center text-center gap-5">
+          <LessonBadges lesson={lesson} />
+          <GenderLegend />
           <Mascot3D mood="idle" talking={speaking} className="h-44 w-44" />
           <div className="rounded-2xl border-2 border-duo-line bg-white px-5 py-4">
             <div className="flex items-center justify-center gap-2">
-              <p className="text-xl font-extrabold text-duo-ink">{lesson.intro.de}</p>
+              <p className="text-xl font-extrabold text-duo-ink">{highlightGenders(lesson.intro.de)}</p>
               <SpeakButton text={lesson.intro.de} />
             </div>
-            <p className="mt-1 text-duo-gray font-semibold">{lesson.intro.en}</p>
+            <TranslationToggle en={lesson.intro.en} />
           </div>
           <div className="w-full rounded-2xl bg-duo-snow p-4 text-left">
             <p className="font-extrabold text-duo-green">{lesson.miniExplanation.rule}</p>
-            <p className="mt-1 text-duo-ink font-semibold">✓ {lesson.miniExplanation.example}</p>
-            <p className="text-duo-gray font-semibold">✗ {lesson.miniExplanation.counterExample}</p>
+            <p className="mt-1 text-duo-ink font-semibold">✓ {highlightGenders(lesson.miniExplanation.example)}</p>
+            <p className="text-duo-gray font-semibold">✗ {highlightGenders(lesson.miniExplanation.counterExample)}</p>
           </div>
         </div>
         <button onClick={() => setPhase('exercise')} className="duo-btn-green w-full text-lg">

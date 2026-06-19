@@ -2,6 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ----------------------------------------------------------------------------
+   THEME TOKENS — consumed by all NEW chrome (login, nav, profile, settings,
+   quests, leaderboard, guidebook). The existing Duolingo lesson/placement flow
+   keeps its own hardcoded duo-* palette and is intentionally left untouched.
+---------------------------------------------------------------------------- */
+:root,
+:root.dark {
+  --bg-primary: #030712;
+  --bg-surface: #111827;
+  --bg-card: #1f2937;
+  --accent: #22c55e;
+  --accent-muted: #16a34a;
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --border: #374151;
+}
+
+:root.light {
+  --bg-primary: #ffffff;
+  --bg-surface: #f3f4f6;
+  --bg-card: #ffffff;
+  --accent: #16a34a;
+  --accent-muted: #15803d;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --border: #e5e7eb;
+}
+
 html,
 body,
 #root {
@@ -17,9 +45,123 @@ body {
   overscroll-behavior: none;
 }
 
+/* When the app shell mounts it adds .hans-shell to body so themed surfaces use
+   the CSS variables. The lesson player renders full-screen and overrides this. */
+body.hans-shell {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
 * {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Smooth theme cross-fade. Scoped to color properties only (never layout). */
+.theme-anim * {
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+/* Monospace terminal accents for the new chrome. */
+.font-mono-hans {
+  font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+}
+
+/* Green text glow used on the logo / headings in the dark terminal aesthetic. */
+.glow-green {
+  text-shadow: 0 0 8px rgba(34, 197, 94, 0.55), 0 0 22px rgba(34, 197, 94, 0.3);
+}
+
+@keyframes hans-pulse-border {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+  50% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
+}
+.pulse-border {
+  animation: hans-pulse-border 1.4s ease-out infinite;
+}
+
+@keyframes hans-float-up {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-48px); opacity: 0; }
+}
+.float-up {
+  animation: hans-float-up 1.1s ease-out forwards;
+}
+
+@keyframes hans-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+.screen-shake {
+  animation: hans-shake 0.5s ease-in-out;
+}
+
+/* Logo glow pulse (2s loop) for the login screen. */
+@keyframes hans-glow-pulse {
+  0%, 100% { text-shadow: 0 0 8px rgba(34,197,94,0.5), 0 0 22px rgba(34,197,94,0.25); }
+  50% { text-shadow: 0 0 16px rgba(34,197,94,0.9), 0 0 40px rgba(34,197,94,0.5); }
+}
+.glow-pulse {
+  animation: hans-glow-pulse 2s ease-in-out infinite;
+}
+
+/* Glass-morphism surface. */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+/* Shimmer sweep across enabled CTAs. */
+@keyframes hans-shimmer {
+  0% { transform: translateX(-150%); }
+  100% { transform: translateX(150%); }
+}
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: hans-shimmer 2.2s ease-in-out infinite;
+}
+
+/* Slow-orbiting blurred gradient orbs for the dashboard background. */
+@keyframes hans-orbit-a { 0%{transform:translate(0,0)} 50%{transform:translate(60px,40px)} 100%{transform:translate(0,0)} }
+@keyframes hans-orbit-b { 0%{transform:translate(0,0)} 50%{transform:translate(-50px,60px)} 100%{transform:translate(0,0)} }
+@keyframes hans-orbit-c { 0%{transform:translate(0,0)} 50%{transform:translate(40px,-50px)} 100%{transform:translate(0,0)} }
+.orb { position: absolute; border-radius: 9999px; filter: blur(80px); opacity: 0.15; pointer-events: none; }
+.orb-a { animation: hans-orbit-a 20s ease-in-out infinite; }
+.orb-b { animation: hans-orbit-b 26s ease-in-out infinite; }
+.orb-c { animation: hans-orbit-c 32s ease-in-out infinite; }
+
+/* Rotating gradient ring around the dashboard hero avatar. */
+@keyframes hans-spin { to { transform: rotate(360deg); } }
+.avatar-ring {
+  background: conic-gradient(from 0deg, #22c55e, #3b82f6, #a855f7, #22c55e);
+  animation: hans-spin 6s linear infinite;
+}
+
+/* German article gender color-coding (lesson display, additive). */
+.gender-m { color: #2563eb; font-weight: 800; }  /* der = blue */
+.gender-f { color: #db2777; font-weight: 800; }  /* die = red/pink */
+.gender-n { color: #16a34a; font-weight: 800; }  /* das = green */
+
+/* Pulsing tutorial dot. */
+@keyframes hans-tip {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.6); }
+  50% { box-shadow: 0 0 0 8px rgba(59,130,246,0); }
+}
+.tip-dot { animation: hans-tip 1.5s ease-out infinite; }
 
 @layer components {
   /* Duolingo's signature chunky button with a solid bottom shadow that

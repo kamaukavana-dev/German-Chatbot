@@ -10,6 +10,21 @@
       href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&display=swap"
       rel="stylesheet"
     />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css"
+    />
+    <!-- Apply saved theme BEFORE React renders to prevent a flash of wrong theme. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('hans_theme')
+          document.documentElement.classList.add(t === 'light' ? 'light' : 'dark')
+        } catch (e) {
+          document.documentElement.classList.add('dark')
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

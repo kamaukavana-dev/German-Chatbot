@@ -56,7 +56,7 @@ export default function AITutor({ profile }) {
     } catch (e) {
       setError(
         e.message.includes('Failed to fetch')
-          ? 'Cannot reach the AI backend. Start it with `npm run dev` (it runs the API on :3001) and set GEMINI_API_KEY in .env.'
+          ? 'Cannot reach the AI backend (/api/chat). Run `npm run dev` (vercel dev) and set GEMINI_API_KEY in .env.'
           : e.message,
       )
     } finally {
