@@ -3,6 +3,7 @@ import AppTopBar from './components/AppTopBar.jsx'
 import AppNav from './components/AppNav.jsx'
 import Home from './components/Home.jsx'
 import LessonPlayer from './components/LessonPlayer.jsx'
+import GeminiLessonPlayer from './components/GeminiLessonPlayer.jsx'
 import PlacementTest from './components/PlacementTest.jsx'
 import AITutor from './components/AITutor.jsx'
 import Login from './components/Login.jsx'
@@ -32,9 +33,17 @@ import { rolloverQuests, unclaimedCount } from './data/quests.js'
 import { evaluateAchievements, ACHIEVEMENT_BY_ID } from './data/achievements.js'
 import { loadTheme, applyTheme } from './lib/theme.js'
 import { sound } from './lib/SoundEngine.js'
+import { initProgression } from './lib/progression.js'
+import {
+  loadLessonState, saveLessonState, defaultLessonState, hasLessonState,
+} from './lib/lessonState.js'
+import { LEVEL_ORDER } from './data/courseContent.js'
 
 // One-time store seeding (safe to call before render).
 initStore()
+// Recalculate guided-course unlocks from the star record on every load —
+// never trust the stored list. Runs before the first render.
+initProgression()
 
 function yesterdayISO() {
   const d = new Date()
@@ -229,6 +238,8 @@ export default function App() {
     }
   }
 
+  // Placement now ALSO seeds the phased guided-lesson state and routes the
+  // learner straight into the TEACH phase of their first concept.
   function finishPlacement(level) {
     patchProfile({
       cefr_level: level,
@@ -238,7 +249,46 @@ export default function App() {
     })
     const u2 = patchUser({ currentLevel: level })
     setUserState(u2)
-    setScreen(null)
+
+    const idx = Math.max(0, LEVEL_ORDER.indexOf(level))
+    const unlockedLevels = LEVEL_ORDER.slice(0, idx + 1)
+    const newState = {
+      ...defaultLessonState(),
+      currentLevel: level,
+      currentUnit: 1,
+      currentLesson: 1,
+      conceptIndex: 0,
+      phase: 'teach', // CRITICAL: always starts at teach
+      unlockedLevels,
+      unlockedUnits: { [level]: [1] },
+      placementComplete: true,
+      placementLevel: level,
+      lastPhaseChange: new Date().toISOString(),
+    }
+    saveLessonState(newState)
+    initProgression() // normalize unlocks from any existing stars
+    setScreen({ type: 'geminiLesson' })
+  }
+
+  // A guided concept finished — fold a little XP/streak into the existing
+  // aggregates so the rest of the app (quests, achievements) stays in sync.
+  function handleConceptComplete({ stars = 0, level } = {}) {
+    handleLessonComplete({
+      gainedXp: 10 + stars * 5,
+      newlyCompleted: true,
+      perfect: stars >= 3,
+      durationSec: 0,
+      bestCombo: stars,
+      level: level || getUser()?.currentLevel || 'A1',
+    })
+  }
+
+  function openGuidedCourse() {
+    if (!hasLessonState()) {
+      saveLessonState(defaultLessonState())
+      initProgression()
+    }
+    setScreen({ type: 'geminiLesson' })
   }
 
   function handleLogin(newUser) {
@@ -282,6 +332,7 @@ export default function App() {
       window.localStorage.removeItem('hans_user')
       window.localStorage.removeItem('hans_ref_seen')
       window.localStorage.removeItem('hans_social')
+      window.localStorage.removeItem('hans_lesson_state')
     } catch { /* ignore */ }
     initStore()
     setProfile(defaultProfile())
@@ -320,6 +371,16 @@ export default function App() {
     return (
       <div className="min-h-screen bg-white text-duo-ink">
         <PlacementTest onDone={finishPlacement} onExit={() => setScreen(null)} />
+      </div>
+    )
+  }
+  if (screen?.type === 'geminiLesson') {
+    return (
+      <div className="min-h-screen bg-white text-duo-ink">
+        <GeminiLessonPlayer
+          onConceptComplete={handleConceptComplete}
+          onExit={() => setScreen(null)}
+        />
       </div>
     )
   }
@@ -410,6 +471,17 @@ export default function App() {
         )}
         {tab === 'learn' && (
           <div className="min-h-full bg-white text-duo-ink">
+            <div className="mx-auto max-w-2xl px-4 pt-4">
+              <button
+                onClick={openGuidedCourse}
+                className="w-full rounded-2xl bg-duo-blue px-5 py-4 text-left text-white shadow-btn-blue"
+              >
+                <div className="text-xs font-bold uppercase tracking-widest opacity-80">
+                  Guided course · HANS
+                </div>
+                <div className="text-lg font-extrabold">Continue your guided lessons →</div>
+              </button>
+            </div>
             <Home profile={profile} onOpen={openNode} />
           </div>
         )}
