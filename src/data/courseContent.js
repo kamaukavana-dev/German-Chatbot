@@ -12,9 +12,10 @@
 // Concept schema (every field used by the phase engine / prompt builder):
 //   id                 globally unique, e.g. "A1_U1_C1"
 //   title              human label
-//   imageQuery         Pexels search string (concrete nouns work best)
+//   imageQuery         Pexels search string for the concept hero image
 //   showImageInPhases  phases allowed to render the concept image
-//   vocabulary[]       { de, en, phonetic, gender }
+//   vocabulary[]       { de, en, phonetic, gender, imageQuery }
+//                      imageQuery → per-word image shown during TEACH
 //   grammarRule        rule stated in German-teaching terms
 //   grammarRuleEnglish plain-English bridge / mnemonic
 //   exampleSentences[] { de, en, literal }
@@ -23,6 +24,9 @@
 //   quizCount          # of QUIZ questions
 //   passScore          fraction (0–1) needed to pass practice/quiz
 //   commonMistake      the classic learner trap
+//
+// imageQuery rules: show the ACTION or OBJECT being taught, specific enough for
+// Pexels to return a relevant, safe, real-world photo.
 // ============================================================================
 
 export const LEVEL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1']
@@ -40,14 +44,14 @@ export const CURRICULUM = {
           {
             id: 'A1_U1_C1',
             title: 'Basic Greetings',
-            imageQuery: 'people greeting smiling friendly',
+            imageQuery: 'two people waving hello smiling',
             showImageInPhases: ['teach', 'demonstrate'],
             vocabulary: [
-              { de: 'Hallo', en: 'Hello', phonetic: '[HA-lo]', gender: null },
-              { de: 'Guten Morgen', en: 'Good morning', phonetic: '[GOO-ten MOR-gen]', gender: null },
-              { de: 'Guten Tag', en: 'Good day', phonetic: '[GOO-ten TAHK]', gender: null },
-              { de: 'Guten Abend', en: 'Good evening', phonetic: '[GOO-ten AH-bent]', gender: null },
-              { de: 'Tschüss', en: 'Bye', phonetic: '[CHUESS]', gender: null },
+              { de: 'Hallo', en: 'Hello', phonetic: '[HA-lo]', gender: null, imageQuery: 'person waving hello smiling friendly' },
+              { de: 'Guten Morgen', en: 'Good morning', phonetic: '[GOO-ten MOR-gen]', gender: null, imageQuery: 'sunrise morning coffee breakfast bright' },
+              { de: 'Guten Tag', en: 'Good day', phonetic: '[GOO-ten TAHK]', gender: null, imageQuery: 'people greeting daytime street sunny' },
+              { de: 'Guten Abend', en: 'Good evening', phonetic: '[GOO-ten AH-bent]', gender: null, imageQuery: 'evening city lights dinner warm' },
+              { de: 'Tschüss', en: 'Bye', phonetic: '[CHUESS]', gender: null, imageQuery: 'person waving goodbye door' },
             ],
             grammarRule:
               'German greetings change by time of day. Use Morgen (morning), ' +
@@ -69,14 +73,14 @@ export const CURRICULUM = {
           {
             id: 'A1_U1_C2',
             title: 'Introducing Yourself',
-            imageQuery: 'two people shaking hands introduction',
+            imageQuery: 'people shaking hands meeting first time',
             showImageInPhases: ['teach', 'demonstrate'],
             vocabulary: [
-              { de: 'ich heiße', en: 'my name is', phonetic: '[ikh HY-suh]', gender: null },
-              { de: 'ich bin', en: 'I am', phonetic: '[ikh bin]', gender: null },
-              { de: 'wie geht es dir?', en: 'how are you?', phonetic: '[vee gait es deer]', gender: null },
-              { de: 'gut', en: 'good / well', phonetic: '[goot]', gender: null },
-              { de: 'und du?', en: 'and you?', phonetic: '[oont doo]', gender: null },
+              { de: 'ich heiße', en: 'my name is', phonetic: '[ikh HY-suh]', gender: null, imageQuery: 'person holding name tag introduction' },
+              { de: 'ich bin', en: 'I am', phonetic: '[ikh bin]', gender: null, imageQuery: 'person pointing to self smiling' },
+              { de: 'wie geht es dir?', en: 'how are you?', phonetic: '[vee gait es deer]', gender: null, imageQuery: 'two friends talking asking conversation' },
+              { de: 'gut', en: 'good / well', phonetic: '[goot]', gender: null, imageQuery: 'person thumbs up happy' },
+              { de: 'und du?', en: 'and you?', phonetic: '[oont doo]', gender: null, imageQuery: 'two people conversation question gesture' },
             ],
             grammarRule:
               'Use "ich heiße + name" or "ich bin + name" to introduce yourself. ' +
@@ -105,15 +109,15 @@ export const CURRICULUM = {
           {
             id: 'A1_U2_C1',
             title: 'Numbers 0–10',
-            imageQuery: 'colorful number blocks counting',
+            imageQuery: 'child counting fingers hands',
             showImageInPhases: ['teach', 'demonstrate'],
             vocabulary: [
-              { de: 'null', en: 'zero', phonetic: '[nool]', gender: null },
-              { de: 'eins', en: 'one', phonetic: '[eyns]', gender: null },
-              { de: 'zwei', en: 'two', phonetic: '[tsvy]', gender: null },
-              { de: 'drei', en: 'three', phonetic: '[dry]', gender: null },
-              { de: 'vier', en: 'four', phonetic: '[feer]', gender: null },
-              { de: 'fünf', en: 'five', phonetic: '[fuenf]', gender: null },
+              { de: 'null', en: 'zero', phonetic: '[nool]', gender: null, imageQuery: 'empty bowl zero nothing' },
+              { de: 'eins', en: 'one', phonetic: '[eyns]', gender: null, imageQuery: 'one finger raised hand' },
+              { de: 'zwei', en: 'two', phonetic: '[tsvy]', gender: null, imageQuery: 'two fingers peace sign hand' },
+              { de: 'drei', en: 'three', phonetic: '[dry]', gender: null, imageQuery: 'three fingers raised hand' },
+              { de: 'vier', en: 'four', phonetic: '[feer]', gender: null, imageQuery: 'four fingers raised hand' },
+              { de: 'fünf', en: 'five', phonetic: '[fuenf]', gender: null, imageQuery: 'open hand five fingers high five' },
             ],
             grammarRule:
               'German numbers 0–10 are fixed words you memorise. "eins" loses its ' +
@@ -136,14 +140,14 @@ export const CURRICULUM = {
           {
             id: 'A1_U2_C2',
             title: 'Numbers 11–20',
-            imageQuery: 'numbers eleven to twenty chalkboard',
+            imageQuery: 'numbers chalkboard classroom counting',
             showImageInPhases: ['teach', 'demonstrate'],
             vocabulary: [
-              { de: 'elf', en: 'eleven', phonetic: '[elf]', gender: null },
-              { de: 'zwölf', en: 'twelve', phonetic: '[tsvoelf]', gender: null },
-              { de: 'dreizehn', en: 'thirteen', phonetic: '[DRY-tsayn]', gender: null },
-              { de: 'sechzehn', en: 'sixteen', phonetic: '[ZEKH-tsayn]', gender: null },
-              { de: 'zwanzig', en: 'twenty', phonetic: '[TSVAN-tsikh]', gender: null },
+              { de: 'elf', en: 'eleven', phonetic: '[elf]', gender: null, imageQuery: 'number eleven sign sport jersey' },
+              { de: 'zwölf', en: 'twelve', phonetic: '[tsvoelf]', gender: null, imageQuery: 'clock face twelve numbers' },
+              { de: 'dreizehn', en: 'thirteen', phonetic: '[DRY-tsayn]', gender: null, imageQuery: 'number thirteen painted' },
+              { de: 'sechzehn', en: 'sixteen', phonetic: '[ZEKH-tsayn]', gender: null, imageQuery: 'sixteen birthday candles cake' },
+              { de: 'zwanzig', en: 'twenty', phonetic: '[TSVAN-tsikh]', gender: null, imageQuery: 'twenty euro banknote money' },
             ],
             grammarRule:
               'From 13–19, German adds "-zehn" (ten) to the unit: drei + zehn = ' +
@@ -171,14 +175,14 @@ export const CURRICULUM = {
           {
             id: 'A1_U3_C1',
             title: 'Common Colors',
-            imageQuery: 'rainbow colors paint palette',
+            imageQuery: 'colorful paint palette rainbow',
             showImageInPhases: ['teach', 'demonstrate'],
             vocabulary: [
-              { de: 'rot', en: 'red', phonetic: '[roht]', gender: null },
-              { de: 'blau', en: 'blue', phonetic: '[blow]', gender: null },
-              { de: 'grün', en: 'green', phonetic: '[gruen]', gender: null },
-              { de: 'gelb', en: 'yellow', phonetic: '[gelp]', gender: null },
-              { de: 'schwarz', en: 'black', phonetic: '[shvarts]', gender: null },
+              { de: 'rot', en: 'red', phonetic: '[roht]', gender: null, imageQuery: 'red apple bright closeup' },
+              { de: 'blau', en: 'blue', phonetic: '[blow]', gender: null, imageQuery: 'blue sky ocean clear' },
+              { de: 'grün', en: 'green', phonetic: '[gruen]', gender: null, imageQuery: 'green leaves grass fresh' },
+              { de: 'gelb', en: 'yellow', phonetic: '[gelp]', gender: null, imageQuery: 'yellow sunflower bright field' },
+              { de: 'schwarz', en: 'black', phonetic: '[shvarts]', gender: null, imageQuery: 'black coal dark texture' },
             ],
             grammarRule:
               'Color words are adjectives. After "ist" they stay in their base ' +
@@ -201,14 +205,14 @@ export const CURRICULUM = {
           {
             id: 'A1_U3_C2',
             title: 'Describing Things',
-            imageQuery: 'big small objects comparison',
+            imageQuery: 'big and small objects size comparison',
             showImageInPhases: ['teach', 'demonstrate'],
             vocabulary: [
-              { de: 'groß', en: 'big', phonetic: '[grohss]', gender: null },
-              { de: 'klein', en: 'small', phonetic: '[klyne]', gender: null },
-              { de: 'alt', en: 'old', phonetic: '[alt]', gender: null },
-              { de: 'neu', en: 'new', phonetic: '[noy]', gender: null },
-              { de: 'schön', en: 'beautiful', phonetic: '[shoern]', gender: null },
+              { de: 'groß', en: 'big', phonetic: '[grohss]', gender: null, imageQuery: 'tall skyscraper building large' },
+              { de: 'klein', en: 'small', phonetic: '[klyne]', gender: null, imageQuery: 'small mouse tiny cute' },
+              { de: 'alt', en: 'old', phonetic: '[alt]', gender: null, imageQuery: 'old vintage antique clock' },
+              { de: 'neu', en: 'new', phonetic: '[noy]', gender: null, imageQuery: 'new shiny product box' },
+              { de: 'schön', en: 'beautiful', phonetic: '[shoern]', gender: null, imageQuery: 'beautiful mountain landscape scenery' },
             ],
             grammarRule:
               'Basic adjectives describe nouns. As predicates ("Es ist groß") they ' +
@@ -236,14 +240,14 @@ export const CURRICULUM = {
           {
             id: 'A1_U4_C1',
             title: 'Family Members',
-            imageQuery: 'happy family together portrait',
+            imageQuery: 'happy family portrait together',
             showImageInPhases: ['teach', 'demonstrate'],
             vocabulary: [
-              { de: 'die Mutter', en: 'the mother', phonetic: '[dee MOO-ter]', gender: 'die' },
-              { de: 'der Vater', en: 'the father', phonetic: '[dair FAH-ter]', gender: 'der' },
-              { de: 'die Schwester', en: 'the sister', phonetic: '[dee SHVES-ter]', gender: 'die' },
-              { de: 'der Bruder', en: 'the brother', phonetic: '[dair BROO-der]', gender: 'der' },
-              { de: 'das Kind', en: 'the child', phonetic: '[das kint]', gender: 'das' },
+              { de: 'die Mutter', en: 'the mother', phonetic: '[dee MOO-ter]', gender: 'die', imageQuery: 'mother smiling portrait warm' },
+              { de: 'der Vater', en: 'the father', phonetic: '[dair FAH-ter]', gender: 'der', imageQuery: 'father smiling portrait warm' },
+              { de: 'die Schwester', en: 'the sister', phonetic: '[dee SHVES-ter]', gender: 'die', imageQuery: 'two sisters hugging together' },
+              { de: 'der Bruder', en: 'the brother', phonetic: '[dair BROO-der]', gender: 'der', imageQuery: 'two brothers together smiling' },
+              { de: 'das Kind', en: 'the child', phonetic: '[das kint]', gender: 'das', imageQuery: 'child playing happy outdoors' },
             ],
             grammarRule:
               'Every German noun has a gender: der (masc), die (fem), das (neuter). ' +
@@ -266,14 +270,14 @@ export const CURRICULUM = {
           {
             id: 'A1_U4_C2',
             title: 'Personal Pronouns',
-            imageQuery: 'group of diverse people pointing',
+            imageQuery: 'diverse group people talking together',
             showImageInPhases: ['teach', 'demonstrate'],
             vocabulary: [
-              { de: 'ich', en: 'I', phonetic: '[ikh]', gender: null },
-              { de: 'du', en: 'you (informal)', phonetic: '[doo]', gender: null },
-              { de: 'er', en: 'he', phonetic: '[air]', gender: null },
-              { de: 'sie', en: 'she / they', phonetic: '[zee]', gender: null },
-              { de: 'wir', en: 'we', phonetic: '[veer]', gender: null },
+              { de: 'ich', en: 'I', phonetic: '[ikh]', gender: null, imageQuery: 'person pointing to self portrait' },
+              { de: 'du', en: 'you (informal)', phonetic: '[doo]', gender: null, imageQuery: 'person pointing at camera you' },
+              { de: 'er', en: 'he', phonetic: '[air]', gender: null, imageQuery: 'young man smiling portrait' },
+              { de: 'sie', en: 'she / they', phonetic: '[zee]', gender: null, imageQuery: 'young woman smiling portrait' },
+              { de: 'wir', en: 'we', phonetic: '[veer]', gender: null, imageQuery: 'group friends together team huddle' },
             ],
             grammarRule:
               'Pronouns replace the subject and decide the verb ending. "sie" means ' +
@@ -311,13 +315,13 @@ export const CURRICULUM = {
           {
             id: 'A2_U1_C1',
             title: 'Separable Verbs',
-            imageQuery: 'person morning routine alarm clock',
+            imageQuery: 'person morning routine alarm clock waking',
             showImageInPhases: ['teach', 'demonstrate'],
             vocabulary: [
-              { de: 'aufstehen', en: 'to get up', phonetic: '[OWF-shtay-en]', gender: null },
-              { de: 'anrufen', en: 'to call (phone)', phonetic: '[AN-roo-fen]', gender: null },
-              { de: 'einkaufen', en: 'to shop', phonetic: '[EYN-kow-fen]', gender: null },
-              { de: 'fernsehen', en: 'to watch TV', phonetic: '[FAIRN-zay-en]', gender: null },
+              { de: 'aufstehen', en: 'to get up', phonetic: '[OWF-shtay-en]', gender: null, imageQuery: 'person getting out of bed morning stretch' },
+              { de: 'anrufen', en: 'to call (phone)', phonetic: '[AN-roo-fen]', gender: null, imageQuery: 'person talking on phone call' },
+              { de: 'einkaufen', en: 'to shop', phonetic: '[EYN-kow-fen]', gender: null, imageQuery: 'person shopping groceries supermarket cart' },
+              { de: 'fernsehen', en: 'to watch TV', phonetic: '[FAIRN-zay-en]', gender: null, imageQuery: 'person watching television on couch' },
             ],
             grammarRule:
               'Separable verbs split: the prefix jumps to the end of the clause. ' +
@@ -354,13 +358,13 @@ export const CURRICULUM = {
           {
             id: 'B1_U1_C1',
             title: 'The Perfekt Tense',
-            imageQuery: 'old photographs memories nostalgia',
+            imageQuery: 'old photographs memories nostalgia album',
             showImageInPhases: ['teach', 'demonstrate'],
             vocabulary: [
-              { de: 'gemacht', en: 'done / made', phonetic: '[ge-MAKHT]', gender: null },
-              { de: 'gegangen', en: 'gone', phonetic: '[ge-GANG-en]', gender: null },
-              { de: 'gegessen', en: 'eaten', phonetic: '[ge-GES-en]', gender: null },
-              { de: 'gesehen', en: 'seen', phonetic: '[ge-ZAY-en]', gender: null },
+              { de: 'gemacht', en: 'done / made', phonetic: '[ge-MAKHT]', gender: null, imageQuery: 'person finishing task checklist done' },
+              { de: 'gegangen', en: 'gone', phonetic: '[ge-GANG-en]', gender: null, imageQuery: 'person walking away path distance' },
+              { de: 'gegessen', en: 'eaten', phonetic: '[ge-GES-en]', gender: null, imageQuery: 'empty plate after meal finished' },
+              { de: 'gesehen', en: 'seen', phonetic: '[ge-ZAY-en]', gender: null, imageQuery: 'person looking watching binoculars view' },
             ],
             grammarRule:
               'The Perfekt uses haben/sein + past participle at the end: "Ich habe ' +
@@ -397,13 +401,13 @@ export const CURRICULUM = {
           {
             id: 'B2_U1_C1',
             title: 'Subordinate Clauses',
-            imageQuery: 'person thinking writing essay',
+            imageQuery: 'person thinking writing essay desk',
             showImageInPhases: ['teach', 'demonstrate'],
             vocabulary: [
-              { de: 'weil', en: 'because', phonetic: '[vyle]', gender: null },
-              { de: 'obwohl', en: 'although', phonetic: '[ob-VOLE]', gender: null },
-              { de: 'damit', en: 'so that', phonetic: '[da-MIT]', gender: null },
-              { de: 'während', en: 'while', phonetic: '[VEH-rent]', gender: null },
+              { de: 'weil', en: 'because', phonetic: '[vyle]', gender: null, imageQuery: 'person explaining reason gesture conversation' },
+              { de: 'obwohl', en: 'although', phonetic: '[ob-VOLE]', gender: null, imageQuery: 'person walking in rain with umbrella' },
+              { de: 'damit', en: 'so that', phonetic: '[da-MIT]', gender: null, imageQuery: 'person planning goal whiteboard arrow' },
+              { de: 'während', en: 'while', phonetic: '[VEH-rent]', gender: null, imageQuery: 'person multitasking working laptop coffee' },
             ],
             grammarRule:
               'Subordinating conjunctions (weil, obwohl, dass …) send the conjugated ' +
@@ -440,13 +444,13 @@ export const CURRICULUM = {
           {
             id: 'C1_U1_C1',
             title: 'Passive Voice',
-            imageQuery: 'factory production line process',
+            imageQuery: 'factory production line process machinery',
             showImageInPhases: ['teach', 'demonstrate'],
             vocabulary: [
-              { de: 'werden', en: 'to be (passive aux.)', phonetic: '[VAIR-den]', gender: null },
-              { de: 'hergestellt', en: 'manufactured', phonetic: '[HAIR-ge-shtelt]', gender: null },
-              { de: 'gebaut', en: 'built', phonetic: '[ge-BOWT]', gender: null },
-              { de: 'verkauft', en: 'sold', phonetic: '[fair-KOWFT]', gender: null },
+              { de: 'werden', en: 'to be (passive aux.)', phonetic: '[VAIR-den]', gender: null, imageQuery: 'factory machine working automated' },
+              { de: 'hergestellt', en: 'manufactured', phonetic: '[HAIR-ge-shtelt]', gender: null, imageQuery: 'factory manufacturing products assembly' },
+              { de: 'gebaut', en: 'built', phonetic: '[ge-BOWT]', gender: null, imageQuery: 'construction building site crane' },
+              { de: 'verkauft', en: 'sold', phonetic: '[fair-KOWFT]', gender: null, imageQuery: 'store selling products checkout counter' },
             ],
             grammarRule:
               'The passive uses "werden" + past participle: "Das Auto wird gebaut." ' +

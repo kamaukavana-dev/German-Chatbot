@@ -1,24 +1,21 @@
 // ============================================================================
 // GET /api/images?query=... — Vercel serverless proxy to the Pexels search API.
-// Keeps PEXELS_API_KEY server-side. Returns up to 3 landscape photos.
-// Cached at the edge for 7 days (with stale-while-revalidate).
+// Keys stay server-side via PEXELS_API_KEY_1..2 (rotated in _lib/pexelsClient).
+// Returns up to 3 landscape photos. Cached at the edge for 7 days.
 // ============================================================================
+import { fetchPexels } from './_lib/pexelsClient.js'
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
   const { query } = req.query
   if (!query) return res.status(400).json({ error: 'Query required' })
 
-  if (!process.env.PEXELS_API_KEY) {
-    return res.status(503).json({ error: 'Images not configured (missing PEXELS_API_KEY).' })
-  }
-
   res.setHeader('Cache-Control', 's-maxage=604800, stale-while-revalidate')
 
   try {
-    const response = await fetch(
+    const response = await fetchPexels(
       `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=3&orientation=landscape`,
-      { headers: { Authorization: process.env.PEXELS_API_KEY } },
     )
 
     const data = await response.json()
@@ -35,6 +32,9 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ photos })
   } catch (error) {
+    if (error?.allKeysExhausted || error?.status === 429) {
+      return res.status(429).json({ error: 'Images temporarily unavailable.', allKeysExhausted: true })
+    }
     console.error('Pexels error:', error.message)
     return res.status(500).json({ error: 'Image fetch failed' })
   }
