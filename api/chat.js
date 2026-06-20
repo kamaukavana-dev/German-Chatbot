@@ -1,18 +1,16 @@
 // ============================================================================
 // POST /api/chat — Vercel serverless function.
-// Exact functional mirror of the original Express handler in backend/server.js:
-//   • same SDK (@google/genai, GoogleGenAI)
-//   • same model (GEMINI_MODEL || 'gemini-2.5-flash')
-//   • same request body  { messages: [{role, content}], level }
-//   • same response shape { reply }
-//   • same status codes   503 (no key) / 400 (bad last msg) / 500 (error)
-// Keys stay server-side via GEMINI_API_KEY_1..4 (Vercel env vars), rotated by
-// api/_lib/geminiClient.js on 429.
+//   • request body  { messages: [{role, content}], level, phase?, concept?, lessonState? }
+//   • response shape { reply, provider }
+//   • status codes   400 (bad last msg / malformed prompt) / 429 (all providers
+//                    rate-limited) / 405 / 500
+//
+// LLM calls go through lib/llm.js, which falls back across providers in order:
+//   Groq → OpenRouter → Cerebras → Gemini (last resort).
+// All keys stay server-side via Vercel env vars.
 // ============================================================================
-import { callGemini } from './_lib/geminiClient.js'
+import { callLLM } from '../lib/llm.js'
 import { systemPrompt, buildSystemPrompt } from './_lib/prompt.js'
-
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash'
 
 export default async function handler(req, res) {
   // CORS (harmless on Vercel same-origin; helps local cross-port testing).
@@ -27,12 +25,9 @@ export default async function handler(req, res) {
     const { messages = [], level, phase, concept, lessonState } = req.body || {}
 
     // Phased guided lesson → phase-aware system prompt.
-    // Free-chat AI Tutor (no `phase`) → legacy level-only prompt (unchanged).
-    const instruction = phase
-      ? buildSystemPrompt(phase, concept, lessonState)
-      : systemPrompt(level)
-    // Phased lessons can be wordier (worked examples, multi-line feedback).
-    const maxOutputTokens = phase ? 700 : 400
+    // Free-chat AI Tutor (no `phase`) → legacy level-only prompt.
+    const instruction = phase ? buildSystemPrompt(phase, concept, lessonState) : systemPrompt(level)
+    const maxTokens = phase ? 800 : 500
 
     const cleaned = messages
       .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && m.content)
@@ -43,29 +38,22 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Last message must be from the user.' })
     }
 
-    // Gemini uses `model` for assistant turns and a `parts` array for content.
-    const contents = cleaned.map((m) => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }))
+    // Neutral message format: system instruction first, then the conversation.
+    const llmMessages = [{ role: 'system', content: instruction }, ...cleaned]
 
-    const response = await callGemini((client) =>
-      client.models.generateContent({
-        model: MODEL,
-        contents,
-        config: {
-          systemInstruction: instruction,
-          maxOutputTokens,
-        },
-      }),
-    )
+    const { content, provider } = await callLLM(llmMessages, { maxTokens })
+    const reply = (content || '').trim()
 
-    const reply = (response.text || '').trim()
-
-    return res.status(200).json({ reply: reply || '…' })
+    return res.status(200).json({ reply: reply || '…', provider })
   } catch (err) {
-    // All keys rate-limited → friendly 429 the UI can detect (never raw quota text).
-    if (err?.allKeysExhausted || err?.status === 429) {
+    // Malformed prompt — a real client bug; surface it (don't dress it up as 503).
+    if (err?.nonRetryable) {
+      return res.status(400).json({ error: 'Request rejected: ' + (err.reason || err.message) })
+    }
+    // Every provider failed (rate limits / outages) — friendly message the UI
+    // already knows how to show (allKeysExhausted). Detail goes to logs only.
+    if (err?.allProvidersFailed) {
+      console.error('[chat] all providers failed:\n', (err.failures || []).join('\n'))
       return res.status(429).json({
         error: 'HANS is taking a short break. Please try again in a few minutes.',
         allKeysExhausted: true,
