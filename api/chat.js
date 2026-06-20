@@ -12,7 +12,7 @@
 import { callGemini } from './_lib/geminiClient.js'
 import { systemPrompt, buildSystemPrompt } from './_lib/prompt.js'
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash'
+const MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash'
 
 export default async function handler(req, res) {
   // CORS (harmless on Vercel same-origin; helps local cross-port testing).
