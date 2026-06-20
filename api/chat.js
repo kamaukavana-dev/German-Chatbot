@@ -9,7 +9,7 @@
 // Key stays server-side via process.env.GEMINI_API_KEY (Vercel env var).
 // ============================================================================
 import { GoogleGenAI } from '@google/genai'
-import { systemPrompt } from './_lib/prompt.js'
+import { systemPrompt, buildSystemPrompt } from './_lib/prompt.js'
 
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
 const apiKey = process.env.GEMINI_API_KEY
@@ -32,7 +32,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { messages = [], level } = req.body || {}
+    const { messages = [], level, phase, concept, lessonState } = req.body || {}
+
+    // Phased guided lesson → phase-aware system prompt.
+    // Free-chat AI Tutor (no `phase`) → legacy level-only prompt (unchanged).
+    const instruction = phase
+      ? buildSystemPrompt(phase, concept, lessonState)
+      : systemPrompt(level)
+    // Phased lessons can be wordier (worked examples, multi-line feedback).
+    const maxOutputTokens = phase ? 700 : 400
+
     const cleaned = messages
       .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && m.content)
       .map((m) => ({ role: m.role, content: String(m.content).slice(0, 4000) }))
@@ -52,8 +61,8 @@ export default async function handler(req, res) {
       model: MODEL,
       contents,
       config: {
-        systemInstruction: systemPrompt(level),
-        maxOutputTokens: 400,
+        systemInstruction: instruction,
+        maxOutputTokens,
       },
     })
 
