@@ -6,14 +6,13 @@
 //   • same request body  { messages: [{role, content}], level }
 //   • same response shape { reply }
 //   • same status codes   503 (no key) / 400 (bad last msg) / 500 (error)
-// Key stays server-side via process.env.GEMINI_API_KEY (Vercel env var).
+// Keys stay server-side via GEMINI_API_KEY_1..4 (Vercel env vars), rotated by
+// api/_lib/geminiClient.js on 429.
 // ============================================================================
-import { GoogleGenAI } from '@google/genai'
+import { callGemini } from './_lib/geminiClient.js'
 import { systemPrompt, buildSystemPrompt } from './_lib/prompt.js'
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
-const apiKey = process.env.GEMINI_API_KEY
-const client = apiKey ? new GoogleGenAI({ apiKey }) : null
+const MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash'
 
 export default async function handler(req, res) {
   // CORS (harmless on Vercel same-origin; helps local cross-port testing).
@@ -23,13 +22,6 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
-
-  if (!client) {
-    return res.status(503).json({
-      error:
-        'AI tutor not configured. Add GEMINI_API_KEY to a .env file (see .env.example) and restart.',
-    })
-  }
 
   try {
     const { messages = [], level, phase, concept, lessonState } = req.body || {}
@@ -57,19 +49,28 @@ export default async function handler(req, res) {
       parts: [{ text: m.content }],
     }))
 
-    const response = await client.models.generateContent({
-      model: MODEL,
-      contents,
-      config: {
-        systemInstruction: instruction,
-        maxOutputTokens,
-      },
-    })
+    const response = await callGemini((client) =>
+      client.models.generateContent({
+        model: MODEL,
+        contents,
+        config: {
+          systemInstruction: instruction,
+          maxOutputTokens,
+        },
+      }),
+    )
 
     const reply = (response.text || '').trim()
 
     return res.status(200).json({ reply: reply || '…' })
   } catch (err) {
+    // All keys rate-limited → friendly 429 the UI can detect (never raw quota text).
+    if (err?.allKeysExhausted || err?.status === 429) {
+      return res.status(429).json({
+        error: 'HANS is taking a short break. Please try again in a few minutes.',
+        allKeysExhausted: true,
+      })
+    }
     console.error('[chat] error:', err.message)
     return res.status(500).json({ error: 'AI request failed: ' + err.message })
   }

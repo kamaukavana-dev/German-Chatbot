@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import Mascot3D from './Mascot3D.jsx'
 import LessonImage from './LessonImage.jsx'
+import { getConceptImage } from '../lib/imageCache.js'
 import { sound } from '../lib/SoundEngine.js'
 import { PHASE, GRADED_PHASES } from '../lib/phases.js'
 import { getNextPhase, shouldAdvancePhase } from '../lib/phaseEngine.js'
@@ -65,6 +66,7 @@ export default function GeminiLessonPlayer({ onExit, onConceptComplete }) {
   const [error, setError] = useState(null)
   const [finished, setFinished] = useState(false)
   const [lastStars, setLastStars] = useState(null)
+  const [exhausted, setExhausted] = useState(false)
 
   const stateRef = useRef(ls)
   const msgsRef = useRef([])
@@ -103,6 +105,7 @@ export default function GeminiLessonPlayer({ onExit, onConceptComplete }) {
     setMessages(outgoing)
     setBusy(true)
     setError(null)
+    setExhausted(false)
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -116,6 +119,11 @@ export default function GeminiLessonPlayer({ onExit, onConceptComplete }) {
       })
       if (!res.ok) {
         const d = await res.json().catch(() => ({}))
+        // All keys rate-limited → show a friendly note, never a raw API error.
+        if (d.allKeysExhausted) {
+          setExhausted(true)
+          return { verdict: null, error: true }
+        }
         throw new Error(d.error || `Server error ${res.status}`)
       }
       const data = await res.json()
@@ -129,7 +137,7 @@ export default function GeminiLessonPlayer({ onExit, onConceptComplete }) {
     } catch (e) {
       setError(
         e.message.includes('Failed to fetch')
-          ? 'Cannot reach the lesson backend (/api/chat). Run `npm run dev` and set GEMINI_API_KEY.'
+          ? 'Cannot reach the lesson backend (/api/chat). Run `npm run dev` and set your Gemini API keys.'
           : e.message,
       )
       return { verdict: null, error: true }
@@ -343,6 +351,11 @@ export default function GeminiLessonPlayer({ onExit, onConceptComplete }) {
       {/* Image (TEACH / DEMONSTRATE / RESULT only) */}
       {showImage && <LessonImage key={`${phase}-${concept.id}`} query={imageQuery} caption={concept.title} />}
 
+      {/* Per-word vocabulary images — TEACH phase only (cached, one fetch/word) */}
+      {phase === PHASE.TEACH && concept?.vocabulary?.length > 0 && (
+        <VocabGallery vocabulary={concept.vocabulary} />
+      )}
+
       {/* Chat */}
       <div ref={scrollRef} className="thin-scroll flex-1 space-y-3 overflow-y-auto pb-2">
         {visibleMessages.map((m, i) => (
@@ -375,7 +388,12 @@ export default function GeminiLessonPlayer({ onExit, onConceptComplete }) {
             {'⭐'.repeat(lastStars) || '💪'}
           </div>
         )}
-        {error && (
+        {exhausted && (
+          <div className="text-amber-400 text-sm text-center p-4">
+            HANS is taking a short break. Please try again in a few minutes! ☕
+          </div>
+        )}
+        {error && !exhausted && (
           <div className="rounded-2xl bg-[#ffdfe0] px-4 py-2.5 text-sm font-semibold text-duo-redDark">
             {error}
           </div>
@@ -426,6 +444,52 @@ export default function GeminiLessonPlayer({ onExit, onConceptComplete }) {
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+// ---- per-word vocabulary images (TEACH phase) ------------------------------
+// One image per word, fetched via the shared 2-tier cache so the same word
+// never hits the network twice. Silent-fails to a neutral placeholder.
+function VocabWord({ item }) {
+  const [photo, setPhoto] = useState(null)
+  useEffect(() => {
+    let alive = true
+    if (item.imageQuery) getConceptImage(item.imageQuery).then((p) => alive && setPhoto(p))
+    return () => {
+      alive = false
+    }
+  }, [item.imageQuery])
+
+  return (
+    <div className="flex flex-col items-center rounded-xl border-2 border-duo-line bg-white p-2 text-center">
+      {photo ? (
+        <img
+          src={photo.thumb}
+          alt={photo.alt}
+          loading="lazy"
+          className="h-20 w-full rounded-lg object-cover"
+        />
+      ) : (
+        <div className="h-20 w-full rounded-lg bg-duo-snow" />
+      )}
+      <div className="mt-1 text-sm font-extrabold text-duo-ink">{item.de}</div>
+      {item.phonetic && <div className="text-[11px] font-bold text-duo-gray">{item.phonetic}</div>}
+      <div className="text-xs font-semibold text-duo-blue">{item.en}</div>
+    </div>
+  )
+}
+
+function VocabGallery({ vocabulary }) {
+  if (!vocabulary?.length) return null
+  return (
+    <div className="mb-3">
+      <div className="grid grid-cols-3 gap-2">
+        {vocabulary.map((v) => (
+          <VocabWord key={v.de} item={v} />
+        ))}
+      </div>
+      <div className="mt-1 text-right text-[10px] text-duo-gray">Photos via Pexels</div>
     </div>
   )
 }
