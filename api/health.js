@@ -2,7 +2,7 @@
 // GET /api/health — Vercel serverless function.
 // Exact mirror of the original Express GET /api/health in backend/server.js.
 // ============================================================================
-const MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash'
+const MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash'
 const geminiKeyCount = [
   process.env.GEMINI_API_KEY_1,
   process.env.GEMINI_API_KEY_2,
